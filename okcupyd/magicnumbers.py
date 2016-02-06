@@ -16,21 +16,33 @@ class maps(six.with_metaclass(util.GetAttrGetItem)):
         'used up'
     )
 
-    orientation = util.IndexedREMap('straight', 'gay', 'bisexual')
+    gender = util.REMap.from_string_pairs(
+        (('two spirit', 22), ('trans woman', 21), ('trans man', 20),
+        ('transsexual', 19), ('transmasculine', 18), ('transgender', 17),
+        ('transfeminine', 16), ('pangender', 15), ('other', 14),
+        ('non-binary', 13), ('intersex', 12), ('hijra', 11),
+        ('gender nonconforming', 10), ('genderqueer', 9), ('genderfluid', 8),
+        ('cis woman', 7), ('cis man', 6), ('bigender', 5), ('androgynous', 4),
+        ('agender', 3), ('man', 2), ('woman', 1))
+    )
+
+    orientation = util.IndexedREMap(
+        'straight', 'gay', 'bisexual','asexual','demisexual','heteroflexible',
+        'homoflexible','lesbian','pansexual','queer','questioning','sapiosexual'
+    )
 
     smokes = util.IndexedREMap(
-        'yes', 'sometimes', 'when drinking', 'trying to quit', 'no'
+        'regularly', 'sometimes', 'never'
     )
 
     drugs = util.IndexedREMap('never', 'sometimes', 'often',
                               default=3, offset=0)
 
-    drinks = util.IndexedREMap('very often', 'often', 'socially', 'rarely',
-                               'desperately', 'not at all')
+    drinks = util.IndexedREMap('often', 'socially', 'doesn')
 
     ethnicities = util.IndexedREMap(
         'asian', 'middle eastern', 'black', 'native american', 'indian',
-        'pacific islander', ('hispanic', 'latin'), 'white', 'other'
+        'pacific islander', ('hispanic', 'latin'), 'white', 'multi-ethnic', 'other ethnicity'
     )
 
     job = util.IndexedREMap(
@@ -44,7 +56,7 @@ class maps(six.with_metaclass(util.GetAttrGetItem)):
     )
 
     status = util.IndexedREMap(
-        'single', 'seeing someone', 'married', 'in an open relationship'
+        'single', 'seeing someone', 'married', 'open relationship', 'available'
     )
 
     monogamy = util.IndexedREMap('(:?[^\-]monogamous)|(:?^monogamous)',
@@ -52,7 +64,7 @@ class maps(six.with_metaclass(util.GetAttrGetItem)):
     strictness = util.IndexedREMap('mostly', 'strictly')
 
     # Doesn't want kids is index 6 for some reason.
-    has_kids = util.IndexedREMap('has a kid', 'has kids', (), (), (),
+    has_kids = util.IndexedREMap('has a kid', r'has kid\(s\)', (), (), (),
                                  "doesn't have kids")
     wants_kids = util.IndexedREMap('might want', 'wants', "doesn't want")
 
@@ -61,12 +73,12 @@ class maps(six.with_metaclass(util.GetAttrGetItem)):
     education_level = util.IndexedREMap(
         'high ?school', 'two[- ]year college', 'university', 'college',
         'masters program', 'law school', 'med school', 'ph.d program',
-        'space camp'
+        'space camp', 'post grad'
     )
 
-    religion = util.IndexedREMap('agnosticism', 'atheism', 'christianity',
-                                 'judaism', 'catholicism', 'islam', 'hinduism',
-                                 'buddhism', 'other', default=1, offset=2)
+    religion = util.IndexedREMap('agnostic', 'atheist', 'christian',
+                                 'jewish', 'catholic', 'muslim', 'hindu',
+                                 'buddhist', 'other', default=1, offset=2)
     seriousness = util.IndexedREMap('very serious', 'somewhat serious',
                                     'not too serious', 'laughing')
 
@@ -378,7 +390,7 @@ language_map_2 = {
     'mongolian': 'mn',
     'norwegian': 'no',
     'occitan': 'oc',
-    'other': '73',
+    'other language': '73',
     'persian': 'fa',
     'polish': 'pl',
     'portuguese': 'pt',
@@ -459,7 +471,7 @@ language_map = {
     'mongolian': '44',
     'norwegian': '45',
     'occitan': '46',
-    'other': '73',
+    'other language': '73',
     'persian': '47',
     'polish': '48',
     'portuguese': '49',

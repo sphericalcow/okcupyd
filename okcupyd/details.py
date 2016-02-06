@@ -8,7 +8,7 @@ from six import string_types
 from . import helpers
 from . import magicnumbers
 from . import util
-from .magicnumbers import maps
+from .magicnumbers import maps, language_map
 from .xpath import xpb
 
 
@@ -100,18 +100,144 @@ class Details(object):
     def refresh(self):
         util.cached_property.bust_caches(self)
 
+    _basics = [maps.orientation,
+               maps.gender,
+               maps.status,
+               util.IndexedREMap(),
+               maps.bodytype]
+    _backgrounds = [maps.ethnicities,
+                    util.REMap.from_string_pairs([(a.replace('+',r'\+'),b)
+                                                  for a, b in language_map.iteritems()]),
+                    maps.education_level,
+                    maps.religion]
+    _misc = [util.IndexedREMap('smokes'),
+             util.IndexedREMap('drink'),
+             util.IndexedREMap('drugs'),
+             maps.diet,
+             util.IndexedREMap('kid'),
+             util.IndexedREMap('dogs','cats'),
+             maps.sign]
+
+    @classmethod
+    def _parse(cls, details, section):
+        if section == 'basics':
+            # Ordered subset of Orientation, Gender, Status, Height, Bodytype
+            # Orientation and Gender can be lists
+            output = {0: [], # orientation
+                      1: [], # gender
+                      2: [], # status
+                      3: [], # height
+                      4: []} # bodytype
+            details = details.split(', ')
+            current = 0
+            for D in details:
+                DL = D.lower()
+                for n in xrange(current, len(cls._basics)):
+                    try:
+                        found = cls._basics[n]._get_nodefault(DL)
+                        if found:
+                            current = n
+                            output[n].append(D)
+                            break
+                    except KeyError:
+                        pass
+                else:
+                    if current <= 3 and any(char.isdigit() for char in D):
+                        output[3].append(D)
+                        current = 3
+                    else:
+                        raise RuntimeError(u"Parsing error in basics section: %s not recognized"%(D))
+            return {'orientation' : ', '.join(output[0]),
+                    'gender' : ', '.join(output[1]),
+                    'status' : ', '.join(output[2]),
+                    'height' : ', '.join(output[3]),
+                    'bodytype' : ', '.join(output[4])}
+        elif section == 'background':
+            # Ordered subset of Ethnicity, Languages, Education, Religion
+            # Ethnicity and Languages can be lists
+            output = {0: [], # ethnicity
+                      1: [], # languages
+                      2: [], # education
+                      3: []} # religion
+            details = details.replace(' and',',').split(', ')
+            current = 0
+            for D in details:
+                D = D.replace('Speaks','').strip()
+                DL = D.replace('some','').replace('fluently','').\
+                    replace('Working on','').replace('Attended','').\
+                    replace('Dropped out of','').lower().strip()
+                if not DL: continue
+                for n in xrange(current, len(cls._backgrounds)):
+                    try:
+                        found = cls._backgrounds[n]._get_nodefault(DL)
+                        if found:
+                            current = n
+                            output[n].append(D)
+                            break
+                    except KeyError:
+                        pass
+                else:
+                    raise RuntimeError(u"Parsing error in background section: %s not recognized"%(D))
+            return {'ethnicities' : ', '.join(output[0]),
+                    'languages' : ', '.join(output[1]),
+                    'education' : ', '.join(output[2]),
+                    'religion' : ', '.join(output[3])}
+        elif section == 'misc':
+            # Smokes, Drinks, Drugs, Diet, Kids, Pets, Sign
+            # Pets can be a list
+            output = {0: [], # smokes
+                      1: [], # drinks
+                      2: [], # drugs
+                      3: [], # diet
+                      4: [], # kids
+                      5: [], # pets
+                      6: []} # sign
+            details = details.split(', ')
+            current = 0
+            for D in details:
+                DL = D.lower().strip()
+                for n in xrange(current, len(cls._misc)):
+                    try:
+                        found = cls._misc[n]._get_nodefault(DL)
+                        if found:
+                            current = n
+                            output[n].append(D)
+                            break
+                    except KeyError:
+                        pass
+                else:
+                    raise RuntimeError(u"Parsing error in misc section: %s not recognized"%(D))
+            return {'smoking' : ', '.join(output[0]),
+                    'drinking' : ', '.join(output[1]),
+                    'drugs' : ', '.join(output[2]),
+                    'diet' : ', '.join(output[3]),
+                    'children' : ', '.join(output[4]),
+                    'pets' : ', '.join(output[5]),
+                    'sign' : ', '.join(output[6])}
+
     @util.cached_property
     def id_to_display_name_value(self):
         output = {}
-        for element in self._profile_details_xpb.apply_(
-            self.profile.profile_tree
-        ):
-            value_element = xpb.dd.one_(element)
-            if not 'id' in value_element.attrib:
-                continue
-            id_name = value_element.attrib['id'].replace('ajax_', '')
-            value = value_element.text_content()
-            output[id_name] = value
+        if self.profile.is_logged_in_user:
+            for element in self._profile_details_xpb.apply_(
+                self.profile.profile_tree
+                ):
+                value_element = xpb.dd.one_(element)
+                if not 'id' in value_element.attrib:
+                    continue
+                id_name = value_element.attrib['id'].replace('ajax_', '')
+                value = value_element.text_content()
+                output[id_name] = value
+        else:
+            for section in ('basics','background','misc'):
+                try:
+                    output.update(self._parse(xpb.table.with_classes('details2015-section',section).get_text_(self.profile.profile_tree).strip(), section))
+                except IndexError:
+                    # section might not be present
+                    pass
+        for k,v in output.iteritems():
+            if not v:
+                output[k] = u"\u2014"
         return output
 
     @property
@@ -135,6 +261,7 @@ class Details(object):
         return response
 
     bodytype = Detail.mapping_updater(maps.bodytype)
+    gender = Detail.mapping_updater(maps.gender)
     orientation = Detail.mapping_updater(maps.orientation)
     smokes = Detail.mapping_updater(maps.smokes, id_name='smoking')
     drugs = Detail.mapping_updater(maps.drugs)

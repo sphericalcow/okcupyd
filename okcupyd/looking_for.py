@@ -31,21 +31,38 @@ class LookingFor(object):
     profile.
     """
 
-    _ages_re = re.compile(u'\s*Ages ([0-9]{1,3})\u2013([0-9]{1,3})\s*')
-    _ages_re2 = re.compile(u'\s*Age ([0-9]{1,3})')
+    _ages_re = re.compile(u'\s*ages ([0-9]{1,3})\u2011([0-9]{1,3})\s*')
+    _ages_re2 = re.compile(u'\s*age ([0-9]{1,3})')
 
-    _looking_for_xpb = xpb.div.with_classes('text', 'what_i_want')
+    _looking_for_xpb = xpb.div.with_classes('lookingfor2015-sentence')
 
     def __init__(self, profile):
         self._profile = profile
 
     @util.cached_property
-    def raw_fields(self):
-        li_elements = self._looking_for_xpb.li.apply_(
+    def raw_list(self):
+        li_elements = self._looking_for_xpb.apply_(
             self._profile.profile_tree
         )
-        return {li.attrib['id'].split('_')[1]: li.text_content()
-                for li in li_elements}
+        if len(li_elements) != 1:
+            raise RuntimeError("OKCupid changed API: lookingfor2015-sentence div not found")
+        return [x.strip() for x in li_elements[0].text_content().split(",")]
+
+    @util.cached_property
+    def raw_fields(self):
+        li_elements = self._looking_for_xpb.apply_(
+            self._profile.profile_tree
+        )
+        if len(li_elements) != 1:
+            raise RuntimeError("OKCupid changed API: lookingfor2015-sentence div not found")
+        L = [x.strip() for x in li_elements[0].text_content().split(",")]
+        if len(L) != 4:
+            print L
+            raise RuntimeError("OKCupid changed API: wrong number of fields in looking_for")
+        return {'single_gentation':L[0],
+                'near':L[1],
+                'ages':L[2],
+                'lookingfor':L[3]}
 
     def update_property(function):
         @property
@@ -62,7 +79,7 @@ class LookingFor(object):
     @update_property
     def gentation(self):
         """The sex/orientation that the user is looking for."""
-        return self.raw_fields.get('gentation').lower().strip()
+        return self.raw_fields.get('single_gentation').replace('single ','').lower().strip()
 
     @update_property
     def ages(self):
@@ -77,8 +94,7 @@ class LookingFor(object):
     def single(self):
         """Whether or not the user is only interested in people that are single.
         """
-        return 'display: none;' not in self._looking_for_xpb.li(id='ajax_single').\
-            one_(self._profile.profile_tree).attrib['style']
+        return 'single' in self.raw_fields.get('single_gentation')
 
     @update_property
     def near_me(self):
@@ -89,8 +105,10 @@ class LookingFor(object):
     @update_property
     def kinds(self):
         """The kinds of relationship tha the user is looking for."""
-        return self.raw_fields.get('lookingfor', '').\
-            replace('For', '').strip().split(', ')
+        lookingfor = self.raw_fields.get('lookingfor', '')
+        nonmon = 'non-monogamous' in lookingfor
+        return lookingfor.replace('for', '').replace(' and',',').replace('.','').\
+            replace('short & long ','short-term dating, non-monogamous long-' if nonmon else 'short-term dating, long-').strip().split(', ')
 
     def update(self, ages=None, single=None, near_me=None, kinds=None,
                gentation=None):

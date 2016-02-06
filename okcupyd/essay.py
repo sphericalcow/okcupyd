@@ -7,22 +7,16 @@ class Essays(object):
     """Interface to reading and writing essays."""
 
     @staticmethod
-    def build_essay_property(essay_index, essay_name):
-        essay_xpb = xpb.div(id='essay_{0}'.format(essay_index))
-        essay_text_xpb = essay_xpb.div.with_class('text').div.with_class('essay')
+    def build_essay_property(essay_title, essay_index, essay_name):
+        titles_xpb = xpb.div.with_classes("essays2015-essay-title","profilesection-title")
+        texts_xpb = xpb.div.with_class("essays2015-essay-content")
         @property
         def essay(self):
-            try:
-                essay_text = essay_text_xpb.get_text_(self._essays).strip()
-            except IndexError:
-                return None
-            if essay_name not in self._short_name_to_title:
-                self._short_name_to_title[essay_name] = helpers.replace_chars(
-                    essay_xpb.a.with_class('essay_title').get_text_(
-                        self._profile.profile_tree
-                    )
-                )
-            return essay_text
+            for title_element, text_element in zip(titles_xpb.apply_(self._profile.profile_tree),
+                                                   texts_xpb.apply_(self._profile.profile_tree)):
+                if helpers.replace_chars(title_element.text_content()).strip() == essay_title:
+                    return text_element.text_content().strip()
+            return None
 
         @essay.setter
         def set_essay_text(self, essay_text):
@@ -32,21 +26,33 @@ class Essays(object):
 
     @classmethod
     def _init_essay_properties(cls):
-        for essay_index, essay_name in enumerate(cls.essay_names):
+        for essay_title, (essay_index, essay_name) in cls.essay_names.iteritems():
             setattr(cls, essay_name,
-                    cls.build_essay_property(essay_index, essay_name))
+                    cls.build_essay_property(essay_title, essay_index, essay_name))
 
     _essays_xpb = xpb.div(id='main_column')
-    #: A list of the attribute names that are used to store the text of
-    #: of essays on instances of this class.
-    essay_names = ['self_summary', 'my_life', 'good_at', 'people_first_notice',
-                   'favorites', 'six_things', 'think_about', 'friday_night',
-                   'private_admission', 'message_me_if']
+    #: A dictionary of the attribute names that are used to store the text of
+    #: of essays on instances of this class: key is the title in the
+    #: corresponding div on OKC and value is the name used by okcupyd
+    essay_names = {'My self-summary' : (0,'self_summary'),
+                   "What I'm doing with my life" : (1,'my_life'),
+                   "I'm really good at" : (2,'good_at'),
+                   'The first things people usually notice about me' : (3,'people_first_notice'),
+                   'Favorite books, movies, shows, music, and food' : (4,'favorites'),
+                   'The six things I could never do without' : (5,'six_things'),
+                   'I spend a lot of time thinking about' : (6,'think_about'),
+                   'On a typical Friday night I am' : (7,'friday_night'),
+                   "The most private thing I'm willing to admit" : (8,'private_admission'),
+                   'You should message me if' : (9,'message_me_if')}
 
     def __init__(self, profile):
         """:param profile: A :class:`.Profile`"""
         self._profile = profile
+        # This used to actually test that indices matched essay names correctly.
+        # With the API change at the end of 2015, it became useless.
         self._short_name_to_title = {}
+        for essay_title, (essay_index, essay_name) in self.essay_names.iteritems():
+            self._short_name_to_title[essay_name] = essay_title
 
     @property
     def short_name_to_title(self):
@@ -70,7 +76,7 @@ class Essays(object):
         util.cached_property.bust_caches(self)
 
     def __iter__(self):
-        for essay_name in self.essay_names:
+        for essay_index, essay_name in sorted(self.essay_names.values()):
             yield getattr(self, essay_name)
 
 

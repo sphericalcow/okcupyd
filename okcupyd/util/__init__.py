@@ -135,6 +135,13 @@ class REMap(object):
             raise KeyError('{0} did not match any of this objects regular'
                            'expressions.'.format(repr(item)))
 
+    def _get_nodefault(self, item):
+        for matcher, value in self.re_value_pairs:
+            if matcher.search(item):
+                return value
+        raise KeyError('{0} did not match any of this objects regular'
+                       'expressions.'.format(repr(item)))
+
     def __setitem__(self, re, value):
         self.add(re, value)
 
