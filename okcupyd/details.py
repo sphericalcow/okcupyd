@@ -206,7 +206,8 @@ class Details(object):
                     except KeyError:
                         pass
                 else:
-                    raise RuntimeError(u"Parsing error in misc section: %s not recognized"%(D))
+                    pass
+                    #raise RuntimeError(u"Parsing error in misc section: %s not recognized"%(D))
             return {'smoking' : ', '.join(output[0]),
                     'drinking' : ', '.join(output[1]),
                     'drugs' : ', '.join(output[2]),

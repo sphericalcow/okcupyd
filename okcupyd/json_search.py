@@ -73,7 +73,7 @@ class SearchManager(object):
 
 class SearchJSONFetcher(object):
 
-    search_uri = 'apitun/match/search'
+    search_uri = '1/apitun/match/search'
     default_headers = {
         'Content-Type': 'application/json'
     }
@@ -96,7 +96,9 @@ class SearchJSONFetcher(object):
     def _post_body(self, after=None, count=None):
         search_parameters = {
             'after': after,
-            'limit': count
+            'limit': count,
+            'fields': "userinfo,thumbs,percentages,likes,last_contacts,online"
+            #'fields': "userinfo,thumbs.limit(10){400x400},percentages,likes,last_contacts,online"
         }
         search_parameters.update(self._parameters)
         return search_parameters

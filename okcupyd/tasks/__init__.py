@@ -16,13 +16,14 @@ ns = Collection()
 ns.add_collection(copy)
 ns.add_collection(db_collection)
 
-login = task(util.get_credentials)
-ns.add_task(login, 'login')
+#login = task(util.get_credentials)
+login = util.get_credentials()
+#ns.add_task(login, 'login')
 
 
 @ns.add_task
 @task(login, default=True)
-def interactive():
+def interactive(ctx):
     u = user.User()
     u = u
     IPython.embed()
@@ -30,7 +31,7 @@ def interactive():
 
 @ns.add_task
 @task(aliases='s')
-def session():
+def session(ctx):
     with db.txn() as session:
         session = session
         IPython.embed()
@@ -38,19 +39,19 @@ def session():
 
 @ns.add_task
 @task(login)
-def enable_logger(logger_name):
+def enable_logger(ctx, logger_name):
     util.enable_logger(logger_name)
 
 
 @ns.add_task
 @task(aliases=('c',))
-def credentials(module_name):
+def credentials(ctx, module_name):
     util.update_settings_with_module(module_name)
 
 
 @ns.add_task
 @task(aliases=('eal',))
-def enable_all_loggers():
+def enable_all_loggers(ctx):
     for logger_name in ('okcupyd', 'requests', __name__):
         util.enable_logger(logger_name)
     db.Session.kw['bind'].echo = True

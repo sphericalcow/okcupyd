@@ -9,6 +9,8 @@ from coloredlogs import ColoredFormatter
 
 from okcupyd import settings
 
+from invoke import task
+
 
 DOMAIN = 'www.okcupid.com'
 headers = {
@@ -31,6 +33,7 @@ def enable_logger(log_name, level=logging.DEBUG):
     log.addHandler(handler)
 
 
+#@task
 def get_credentials():
     if not settings.USERNAME:
         input_function = input if sys.version_info.major == 3 else raw_input
