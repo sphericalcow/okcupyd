@@ -119,6 +119,7 @@ class Profile(object):
         return helpers.get_authcode(self.profile_tree)
 
     _xpbs[None]['photo_info'] = xpb.div.with_class('photo').img.select_attribute_('src')
+
     @util.cached_property
     def photo_infos(self):
         """
@@ -135,6 +136,27 @@ class Profile(object):
         return [photo.Info.from_cdn_uri(uri)
                 for uri in self._xpbs[None]['photo_info'].apply_(pics_tree)]
 
+    @util.cached_property
+    def personality_traits(self):
+        """
+        :returns: peronality traits dict
+        """
+        personality_request = self._session.okc_get(
+            u'profile/{0}/personality'.format(self.username),
+        ).content
+
+        tree = html.fromstring(personality_request)
+        traits = tree.xpath("//*[@class='chartTrait-label']//text()")
+        if traits:
+            traits = [t.strip().split() for t in traits]
+            traits = zip(*traits)
+            signs = [1 if x == 'More' else -1 for x in traits[0]]
+            amount = tree.xpath("//*[@class='chartTrait-bar-inner']//@style")
+            amount = [float(t.split()[1][:-2]) / 100 for t in amount]
+            amount = map(lambda x: x[0] * x[1], zip(amount, signs))
+            return dict(zip(traits[1], amount))
+        else:
+            return None
 
     @util.cached_property
     def looking_for(self):
@@ -161,13 +183,14 @@ class Profile(object):
         """
         :returns: Whether or not the logged in user liked this profile
         """
-        if self.is_logged_in_user: return False
+        if self.is_logged_in_user:
+            return False
         classes = self._xpbs[False]['liked'].one_(self.profile_tree).attrib['class'].split()
         return 'liked' in classes
 
     _xpbs[False]['contacted'] = xpb.div.with_class('actions2015').button.\
-                     with_classes('actions2015-chat', 'flatbutton', 'blue').\
-                     select_attribute_('data-tooltip')
+        with_classes('actions2015-chat', 'flatbutton', 'blue').\
+        select_attribute_('data-tooltip')
 
     @util.cached_property
     def contacted(self):
@@ -190,19 +213,20 @@ class Profile(object):
                   responds to messages.
         """
         contacted_text = self._xpbs[False]['contacted'].\
-                         get_text_(self.profile_tree).lower()
+            get_text_(self.profile_tree).lower()
         if 'contacted' not in contacted_text:
             return contacted_text.strip().replace('replies ', '')
 
     _xpbs[False]['id'] = xpb.button.with_class('binary_rating_button').\
-              select_attribute_("data-tuid")
+        select_attribute_("data-tuid")
 
     @util.cached_property
     def id(self):
         """
         :returns: The id that okcupid.com associates with this profile.
         """
-        if self.is_logged_in_user: return self._current_user_id
+        if self.is_logged_in_user:
+            return self._current_user_id
         return int(self._xpbs[False]['id'].one_(self.profile_tree))
 
     @util.cached_property
@@ -337,7 +361,7 @@ class Profile(object):
                                           data=parameters)
         response_json = response.json()
         log_function = log.info if response_json.get('status', False) \
-                       else log.error
+            else log.error
         log_function(simplejson.dumps({'rate_response': response_json,
                                        'sent_parameters': parameters,
                                        'headers': dict(self._session.headers)}))
