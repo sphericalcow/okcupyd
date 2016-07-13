@@ -159,6 +159,19 @@ class Profile(object):
             return None
 
     @util.cached_property
+    def questions_count(self):
+        """
+        :returns: number of questions for the user (not all ought to be visible)
+        """
+        request = self._session.okc_get(
+            u'profile/{0}/questions'.format(self.username),
+        ).content
+
+        tree = html.fromstring(request)
+        comparison_text = tree.xpath("//*[@id='question_comparison']/p/text()")[0]
+        return int(comparison_text.split()[-2])
+
+    @util.cached_property
     def looking_for(self):
         """
         :returns: A :class:`~okcupyd.looking_for.LookingFor` instance associated
