@@ -171,6 +171,24 @@ class User(object):
         return MessageThread.delete_threads(self._session,
                                             thread_ids_or_threads)
 
+    def reveal_profile_questions(self, profile, refresh_source=True):
+        """Answer all unanswered questions for the target profile
+
+        :param refresh_source: Refresh current user's questions status
+        """
+        answered = False
+        for question in profile.questions:
+            log.debug(u'Answering {0}: {1} to see {2}\'s answer'.format(
+                question.id, question.text, profile.username
+            ))
+            if not question.answered:
+                self.questions.respond(question.id, [1], [1], 3)
+                answered = True
+
+        if answered:
+            profile.refresh()
+
+
     def get_user_question(self, question, fast=False,
                           bust_questions_cache=False):
         """Get a :class:`~okcupyd.question.UserQuestion` corresponding to the
