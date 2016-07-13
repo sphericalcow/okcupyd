@@ -97,7 +97,8 @@ class SearchJSONFetcher(object):
         search_parameters = {
             'after': after,
             'limit': count,
-            'fields': "userinfo,thumbs,percentages,likes,last_contacts,online"
+            'fields': "userinfo,thumbs.limit(1){225x225}"
+            #'fields': "userinfo,thumbs,percentages,likes,last_contacts,online"
             #'fields': "userinfo,thumbs.limit(10){400x400},percentages,likes,last_contacts,online"
         }
         search_parameters.update(self._parameters)
